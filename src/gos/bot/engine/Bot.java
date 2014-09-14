@@ -14,6 +14,8 @@ public final class Bot implements IBot {
     private /* mutable */ State currentState;
     private final Random random = new Random();
 
+    private final MoveSearcher moveSearcher = new MoveSearcher();
+
     public Bot() {
         currentState = new State();
     }
@@ -25,8 +27,7 @@ public final class Bot implements IBot {
 
     @Override
     public gos.bot.protocol.Move handleMove(MoveRequest request) {
-        final MoveSearcher moveSearcher = new MoveSearcher(currentState);
-        final Move chosen = moveSearcher.search();
+        final Move chosen = moveSearcher.search(currentState);
         System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());
         return new gos.bot.protocol.Move(chosen.type, chosen.from, chosen.to);
     }

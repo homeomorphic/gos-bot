@@ -7,21 +7,16 @@ import java.util.List;
 
 final class MoveSearcher {
 
-    private final State state;
     private static final int DEPTH = 4;
-    private final HashMap<State, Float> tt;
     private double nps;
+    private long nodes;
 
-    public MoveSearcher(State state) {
-        this.state = state;
-        this.tt = new HashMap<>();
-    }
 
-    public Move search() {
+    public Move search(State state) {
         final long startTime = System.currentTimeMillis();
         final SearchResult result = search(state, DEPTH, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
         final long endTime = System.currentTimeMillis();
-        nps = tt.size() / ((endTime - startTime) / 1000.0);
+        nps = nodes / ((endTime - startTime) / 1000.0);
         return result.bestMove;
     }
 
@@ -29,7 +24,7 @@ final class MoveSearcher {
         return nps;
     }
     public long nodes() {
-        return tt.size();
+        return nodes;
     }
 
     private static final class SearchResult {
@@ -46,11 +41,6 @@ final class MoveSearcher {
         final List<Move> moves = state.possibleMoves();
         final Player winner;
         final SearchResult result;
-
-        final Float cachedEval = tt.get(state);
-        if (cachedEval != null) {
-            return new SearchResult(cachedEval, null);
-        }
 
         if (moves.size() == 0) {
             winner = state.getPlayerToMove().opponent();
@@ -94,7 +84,7 @@ final class MoveSearcher {
             result = new SearchResult(beta, bestMove);
         }
 
-        tt.put(state, result.eval);
+        nodes++;
 
         return result;
     }
