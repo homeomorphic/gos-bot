@@ -2,13 +2,34 @@ package gos.bot.engine;
 
 import gos.bot.protocol.Player;
 
+import java.util.HashMap;
 import java.util.List;
 
 final class MoveSearcher {
 
-    public static Move search(State state) {
-        final SearchResult result = search(state, 4, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
+    private final State state;
+    private static final int DEPTH = 4;
+    private final HashMap<State, Float> tt;
+    private double nps;
+
+    public MoveSearcher(State state) {
+        this.state = state;
+        this.tt = new HashMap<>();
+    }
+
+    public Move search() {
+        final long startTime = System.currentTimeMillis();
+        final SearchResult result = search(state, DEPTH, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
+        final long endTime = System.currentTimeMillis();
+        nps = tt.size() / ((endTime - startTime) / 1000.0);
         return result.bestMove;
+    }
+
+    public double nps() {
+        return nps;
+    }
+    public long nodes() {
+        return tt.size();
     }
 
     private static final class SearchResult {
@@ -21,9 +42,15 @@ final class MoveSearcher {
         }
     }
 
-    private static SearchResult search(State state, int remainingDepth, float alpha, float beta) {
+    private SearchResult search(State state, int remainingDepth, float alpha, float beta) {
         final List<Move> moves = state.possibleMoves();
         final Player winner;
+        final SearchResult result;
+
+        final Float cachedEval = tt.get(state);
+        if (cachedEval != null) {
+            return new SearchResult(cachedEval, null);
+        }
 
         if (moves.size() == 0) {
             winner = state.getPlayerToMove().opponent();
@@ -33,18 +60,15 @@ final class MoveSearcher {
 
         if (winner != Player.None) {
             final float eval = winner == Player.White ? Float.POSITIVE_INFINITY : Float.NEGATIVE_INFINITY;
-            return new SearchResult(eval, null);
-        }
-
-        if (remainingDepth == 0) {
+            result = new SearchResult(eval, null);
+        } else if (remainingDepth == 0) {
             final float eval = Evaluator.evaluate(state);
-            return new SearchResult(eval, null);
-        }
-
-        if (state.getPlayerToMove() == Player.White) {
+            result = new SearchResult(eval, null);
+        } else if (state.getPlayerToMove() == Player.White) {
             Move bestMove = null;
             for (final Move move : moves) {
-                final SearchResult childResult = search(state.applyMove(move), remainingDepth - 1, alpha, beta);
+                final State childState = state.applyMove(move);
+                final SearchResult childResult = search(childState, remainingDepth - 1, alpha, beta);
                 if (childResult.eval > alpha || bestMove == null) {
                     bestMove = move;
                 }
@@ -53,11 +77,12 @@ final class MoveSearcher {
                     break;
                 }
             }
-            return new SearchResult(alpha, bestMove);
+            result = new SearchResult(alpha, bestMove);
         } else {
             Move bestMove = null;
             for (final Move move : moves) {
-                final SearchResult childResult = search(state.applyMove(move), remainingDepth - 1, alpha, beta);
+                final State childState = state.applyMove(move);
+                final SearchResult childResult = search(childState, remainingDepth - 1, alpha, beta);
                 if (childResult.eval < beta || bestMove == null) {
                     bestMove = move;
                 }
@@ -66,8 +91,12 @@ final class MoveSearcher {
                     break;
                 }
             }
-            return new SearchResult(beta, bestMove);
+            result = new SearchResult(beta, bestMove);
         }
+
+        tt.put(state, result.eval);
+
+        return result;
     }
 
 }

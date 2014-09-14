@@ -12,9 +12,9 @@ public final class State {
     private final Player playerToMove;
     private final boolean firstMoveOfSequence;
 
-    private final Player[][] owners;
-    private final Stone[][] stoneTypes;
-    private final int[][] heights;
+    private final Player[] owners;
+    private final Stone[] stoneTypes;
+    private final int[] heights;
 
     public static final BoardLocation[] BOARD_LOCATIONS;
 
@@ -35,13 +35,13 @@ public final class State {
     }
 
     public int getHeight(BoardLocation loc) {
-        return heights[loc.X][loc.Y];
+        return heights[loc.asIndex()];
     }
     public Stone getStoneType(BoardLocation loc) {
-        return stoneTypes[loc.X][loc.Y];
+        return stoneTypes[loc.asIndex()];
     }
     public Player getOwner(BoardLocation loc) {
-        return owners[loc.X][loc.Y];
+        return owners[loc.asIndex()];
     }
 
     public State() {
@@ -51,22 +51,13 @@ public final class State {
 
         final Board initialBoard = new Board();
 
-        owners = new Player[9][];
-        stoneTypes = new Stone[9][];
-        heights = new int[9][];
-        for (int i = 0; i < 9; i++) {
-            owners[i] = new Player[9];
-            stoneTypes[i] = new Stone[9];
-            heights[i] = new int[9];
-            for (int j = 0; j < 9; j++) {
-                if (!BoardLocation.IsLegal(i, j)) {
-                    continue;
-                }
-                final BoardLocation loc = new BoardLocation(i, j);
-                owners[i][j] = initialBoard.GetOwner(loc);
-                stoneTypes[i][j] = initialBoard.GetStone(loc);
-                heights[i][j] = initialBoard.GetHeight(loc);
-            }
+        owners = new Player[81];
+        stoneTypes = new Stone[81];
+        heights = new int[81];
+        for (final BoardLocation loc : BOARD_LOCATIONS) {
+            owners[loc.asIndex()] = initialBoard.GetOwner(loc);
+            stoneTypes[loc.asIndex()] = initialBoard.GetStone(loc);
+            heights[loc.asIndex()] = initialBoard.GetHeight(loc);
         }
     }
 
@@ -79,32 +70,27 @@ public final class State {
             this.firstMoveOfSequence = !prev.firstMoveOfSequence;
             this.playerToMove = prev.firstMoveOfSequence ? prev.playerToMove : prev.playerToMove.opponent();
         }
-        owners = new Player[9][];
-        stoneTypes = new Stone[9][];
-        heights = new int[9][];
-        for (int i = 0; i < 9; i++) {
-            owners[i] = Arrays.copyOf(prev.owners[i], 9);
-            stoneTypes[i] = Arrays.copyOf(prev.stoneTypes[i], 9);
-            heights[i] = Arrays.copyOf(prev.heights[i], 9);
-        }
+        owners = Arrays.copyOf(prev.owners, prev.owners.length);
+        stoneTypes = Arrays.copyOf(prev.stoneTypes, prev.stoneTypes.length);
+        heights = Arrays.copyOf(prev.heights, prev.heights.length);
 
         switch (move.type) {
             case Attack:
-                owners[move.from.X][move.from.Y] = Player.None;
-                owners[move.to.X][move.to.Y] = prev.playerToMove;
-                stoneTypes[move.from.X][move.from.Y] = Stone.None;
-                stoneTypes[move.to.X][move.to.Y] = prev.stoneTypes[move.from.X][move.from.Y];
-                heights[move.from.X][move.from.Y] = 0;
-                heights[move.to.X][move.to.Y] = prev.heights[move.from.X][move.from.Y];
+                owners[move.from.asIndex()] = Player.None;
+                owners[move.to.asIndex()] = prev.playerToMove;
+                stoneTypes[move.from.asIndex()] = Stone.None;
+                stoneTypes[move.to.asIndex()] = prev.stoneTypes[move.from.asIndex()];
+                heights[move.from.asIndex()] = 0;
+                heights[move.to.asIndex()] = prev.heights[move.from.asIndex()];
                 break;
             case Strengthen:
-                owners[move.from.X][move.from.Y] = Player.None;
-                owners[move.to.X][move.to.Y] = prev.playerToMove;
-                stoneTypes[move.from.X][move.from.Y] = Stone.None;
-                stoneTypes[move.to.X][move.to.Y] = prev.stoneTypes[move.from.X][move.from.Y];
-                heights[move.from.X][move.from.Y] = 0;
-                heights[move.to.X][move.to.Y] = prev.heights[move.from.X][move.from.Y] +
-                        prev.heights[move.to.X][move.to.Y];
+                owners[move.from.asIndex()] = Player.None;
+                owners[move.to.asIndex()] = prev.playerToMove;
+                stoneTypes[move.from.asIndex()] = Stone.None;
+                stoneTypes[move.to.asIndex()] = prev.stoneTypes[move.from.asIndex()];
+                heights[move.from.asIndex()] = 0;
+                heights[move.to.asIndex()] = prev.heights[move.from.asIndex()] +
+                        prev.heights[move.to.asIndex()];
                 break;
             case Pass:
                 break;
@@ -116,7 +102,7 @@ public final class State {
         do {
             x += dx;
             y += dy;
-        } while (BoardLocation.IsLegal(x, y) && owners[x][y] == Player.None);
+        } while (BoardLocation.IsLegal(x, y) && owners[new BoardLocation(x, y).asIndex()] == Player.None);
 
         return BoardLocation.IsLegal(x, y) ? new BoardLocation(x, y) : null;
     }
@@ -147,21 +133,21 @@ public final class State {
             result.add(Move.Pass());
         }
         for (final BoardLocation from : BOARD_LOCATIONS) {
-            if (owners[from.X][from.Y] != playerToMove) {
+            if (owners[from.asIndex()] != playerToMove) {
                 continue;
             }
             for (final BoardLocation to : toLocations(from)) {
                 /* attack? */
                 final boolean canAttack =
-                        (owners[to.X][to.Y] == playerToMove.opponent()) &&
-                                (heights[from.X][from.Y] >= heights[to.X][to.Y]);
+                        (owners[to.asIndex()] == playerToMove.opponent()) &&
+                                (heights[from.asIndex()] >= heights[to.asIndex()]);
 
                 if (canAttack) {
                     result.add(Move.Attack(from, to));
                 }
 
                 final boolean canStrengthen =
-                        (owners[to.X][to.Y] == playerToMove) && !mustAttack;
+                        (owners[to.asIndex()] == playerToMove) && !mustAttack;
                 if (canStrengthen) {
                     result.add(Move.Strengthen(from, to));
                 }
@@ -179,13 +165,12 @@ public final class State {
         final int[] stonesByTypeW = new int[3];
         final int[] stonesByTypeB = new int[3];
         for (final BoardLocation loc : BOARD_LOCATIONS) {
-            final int x = loc.X, y = loc.Y;
-            switch (owners[x][y]) {
+            switch (owners[loc.asIndex()]) {
                 case White:
-                    stonesByTypeW[stoneTypes[x][y].value - 1]++;
+                    stonesByTypeW[stoneTypes[loc.asIndex()].value - 1]++;
                     break;
                 case Black:
-                    stonesByTypeB[stoneTypes[x][y].value - 1]++;
+                    stonesByTypeB[stoneTypes[loc.asIndex()].value - 1]++;
                     break;
             }
         }
@@ -197,5 +182,33 @@ public final class State {
         } else {
             return Player.None;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        State state = (State) o;
+
+        if (firstEverMove != state.firstEverMove) return false;
+        if (firstMoveOfSequence != state.firstMoveOfSequence) return false;
+        if (!Arrays.equals(heights, state.heights)) return false;
+        if (!Arrays.equals(owners, state.owners)) return false;
+        if (playerToMove != state.playerToMove) return false;
+        if (!Arrays.equals(stoneTypes, state.stoneTypes)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (firstEverMove ? 1 : 0);
+        result = 31 * result + playerToMove.hashCode();
+        result = 31 * result + (firstMoveOfSequence ? 1 : 0);
+        result = 31 * result + Arrays.hashCode(owners);
+        result = 31 * result + Arrays.hashCode(stoneTypes);
+        result = 31 * result + Arrays.hashCode(heights);
+        return result;
     }
 }

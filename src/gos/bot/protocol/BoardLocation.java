@@ -22,6 +22,10 @@ public class BoardLocation
                 (x - y) < 5 && (y - x) < 5 && (x != 4 || y != 4);
     }
 
+    public int asIndex() {
+        return X * 9 + Y;
+    }
+
     public String ToLabel()
     {
         char x = (char)('A' + X);
