@@ -2,19 +2,32 @@ package gos.bot.engine;
 
 import gos.bot.protocol.Player;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 final class MoveSearcher {
 
-    private static final int DEPTH = 4;
+    private static final long MOVE_TIME_MS = 1500;
+    private static final int MAX_DEPTH = 8;
     private double nps;
     private long nodes;
+
+    private List<Move> principalVariation;
 
 
     public Move search(State state) {
         final long startTime = System.currentTimeMillis();
-        final SearchResult result = search(state, DEPTH, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
+        int depth = 1;
+        principalVariation = new ArrayList<>();
+        SearchResult result;
+        long curTime;
+        do {
+            result = search(state, depth, 0, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
+            curTime = System.currentTimeMillis();
+            System.err.println("depth = " + depth + "; best move = " + result + "; PV = " + principalVariation);
+            depth++;
+        } while (curTime - startTime < MOVE_TIME_MS && depth <= MAX_DEPTH);
         final long endTime = System.currentTimeMillis();
         nps = nodes / ((endTime - startTime) / 1000.0);
         return result.bestMove;
@@ -35,17 +48,28 @@ final class MoveSearcher {
             this.eval = eval;
             this.bestMove = bestMove;
         }
+
+        @Override
+        public String toString() {
+            return "SearchResult{" +
+                    "eval=" + eval +
+                    ", bestMove=" + bestMove +
+                    '}';
+        }
     }
 
-    private SearchResult search(State state, int remainingDepth, float alpha, float beta) {
+    private SearchResult search(State state, int remainingDepth, int ply, float alpha, float beta) {
         final List<Move> moves = state.possibleMoves();
+        if (ply < principalVariation.size()) {
+            Collections.sort(moves, new BetterMoveHeuristic(state, principalVariation, ply));
+        }
         final Player winner;
         final SearchResult result;
 
         if (moves.size() == 0) {
             winner = state.getPlayerToMove().opponent();
         } else {
-            winner = state.loser();
+            winner = state.loser().opponent();
         }
 
         if (winner != Player.None) {
@@ -58,7 +82,7 @@ final class MoveSearcher {
             Move bestMove = null;
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
-                final SearchResult childResult = search(childState, remainingDepth - 1, alpha, beta);
+                final SearchResult childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta);
                 if (childResult.eval > alpha || bestMove == null) {
                     bestMove = move;
                 }
@@ -72,7 +96,7 @@ final class MoveSearcher {
             Move bestMove = null;
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
-                final SearchResult childResult = search(childState, remainingDepth - 1, alpha, beta);
+                final SearchResult childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta);
                 if (childResult.eval < beta || bestMove == null) {
                     bestMove = move;
                 }
@@ -85,6 +109,11 @@ final class MoveSearcher {
         }
 
         nodes++;
+        if (ply < principalVariation.size()) {
+            principalVariation.set(ply, result.bestMove);
+        } else {
+            principalVariation.add(result.bestMove);
+        }
 
         return result;
     }

@@ -32,4 +32,32 @@ public class BoardLocation
         char y = (char)('1' + (Y - Math.max(X - 4, 0)));
         return new String(new char[] { x, y });
     }
+
+    @Override
+    public String toString() {
+        return "BoardLocation{" +
+                "X=" + X +
+                ", Y=" + Y +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        BoardLocation that = (BoardLocation) o;
+
+        if (X != that.X) return false;
+        if (Y != that.Y) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = X;
+        result = 31 * result + Y;
+        return result;
+    }
 }

@@ -24,6 +24,7 @@ public enum Player
         switch (this) {
             case White: return Black;
             case Black: return White;
+            case None: return None;
             default: throw new IllegalStateException();
         }
     }
