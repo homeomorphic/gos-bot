@@ -1,0 +1,7 @@
+
+* better movegen
+* move push/pop instead of copying
+* transposition table
+* improve heuristic
+* quiescense search
+* search deeper (less broad) in deeper plies
