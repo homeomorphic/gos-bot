@@ -12,7 +12,7 @@ final class Evaluator {
     private static float evaluate(State state, Player player) {
         final int[] stoneDistribution = new int[4];
         final int[] heightDistribution = new int[4];
-        for (final BoardLocation loc : State.BOARD_LOCATIONS) {
+        for (byte loc = 0; loc < Move.N_BOARD_LOCATIONS; loc++) {
             if (player == state.getOwner(loc)) {
                 stoneDistribution[state.getStoneType(loc).value]++;
                 heightDistribution[state.getStoneType(loc).value] =

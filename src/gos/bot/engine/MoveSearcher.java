@@ -9,7 +9,7 @@ import java.util.List;
 final class MoveSearcher {
 
     private static final long MOVE_TIME_MS = 1800;
-    private static final int MAX_DEPTH = 8;
+    private static final int MAX_DEPTH = 4;
     private final State state;
     private long nodes;
     private long startTime;
@@ -31,6 +31,7 @@ final class MoveSearcher {
         SearchResult result;
         do {
             result = search(state, depth, 0, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
+            emit();
             depth++;
         } while (depth <= MAX_DEPTH && !timeIsUp());
         endTime = System.currentTimeMillis();
@@ -141,9 +142,10 @@ final class MoveSearcher {
     }
 
     private boolean timeIsUp() {
+        return false;/*
         flagAboutToFall = flagAboutToFall ||
                 (nodes % 10000 == 0) && (System.currentTimeMillis() - startTime >= MOVE_TIME_MS);
-        return flagAboutToFall;
+        return flagAboutToFall;*/
     }
 
 }

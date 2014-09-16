@@ -25,21 +25,16 @@ public final class Bot implements IBot {
 
     @Override
     public gos.bot.protocol.Move handleMove(MoveRequest request) {
+        System.err.println("# moves " + currentState.possibleMoves().size());
         final MoveSearcher moveSearcher = new MoveSearcher(currentState);
         final Move chosen = moveSearcher.search();
-        //System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());
-        return new gos.bot.protocol.Move(chosen.type, chosen.from, chosen.to);
+        System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());
+        return chosen.asProtocolMove();
     }
 
     @Override
     public void handleProcessedMove(ProcessedMove processedMove) {
-        final Move moveToApply;
-        switch (processedMove.Move.Type) {
-            case Attack: moveToApply = Move.Attack(processedMove.Move.From, processedMove.Move.To); break;
-            case Strengthen: moveToApply = Move.Strengthen(processedMove.Move.From, processedMove.Move.To); break;
-            case Pass: moveToApply = Move.Pass(); break;
-            default: throw new IllegalArgumentException("processedMove");
-        }
+        final Move moveToApply = Move.of(processedMove.Move);
         currentState = currentState.applyMove(moveToApply);
     }
 }

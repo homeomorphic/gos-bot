@@ -16,32 +16,24 @@ public final class State {
     private final Stone[] stoneTypes;
     private final int[] heights;
 
-    public static final BoardLocation[] BOARD_LOCATIONS;
-
-    static {
-        final List<BoardLocation> boardLocations = new ArrayList<>();
-        for (int i = 0; i < 9; i++) {
-            for (int j = 0; j < 9; j++) {
-                if (BoardLocation.IsLegal(i, j)) {
-                    boardLocations.add(new BoardLocation(i, j));
-                }
-            }
-        }
-        BOARD_LOCATIONS = boardLocations.toArray(new BoardLocation[boardLocations.size()]);
-    }
+    final long occupiedBB;
 
     public Player getPlayerToMove() {
         return playerToMove;
     }
 
-    public int getHeight(BoardLocation loc) {
-        return heights[loc.asIndex()];
+    public int getHeight(byte loc) {
+        return heights[loc];
     }
-    public Stone getStoneType(BoardLocation loc) {
-        return stoneTypes[loc.asIndex()];
+    public Stone getStoneType(byte loc) {
+        return stoneTypes[loc];
     }
-    public Player getOwner(BoardLocation loc) {
-        return owners[loc.asIndex()];
+    public Player getOwner(byte loc) {
+        return owners[loc];
+    }
+
+    public boolean mustAttack() {
+        return firstMoveOfSequence;
     }
 
     public State() {
@@ -51,14 +43,16 @@ public final class State {
 
         final Board initialBoard = new Board();
 
-        owners = new Player[81];
-        stoneTypes = new Stone[81];
-        heights = new int[81];
-        for (final BoardLocation loc : BOARD_LOCATIONS) {
-            owners[loc.asIndex()] = initialBoard.GetOwner(loc);
-            stoneTypes[loc.asIndex()] = initialBoard.GetStone(loc);
-            heights[loc.asIndex()] = initialBoard.GetHeight(loc);
+        owners = new Player[Move.N_BOARD_LOCATIONS];
+        stoneTypes = new Stone[Move.N_BOARD_LOCATIONS];
+        heights = new int[Move.N_BOARD_LOCATIONS];
+        for (int i = 0; i < Move.N_BOARD_LOCATIONS; i++) {
+            final BoardLocation loc = Move.BOARD_LOCATIONS[i];
+            owners[i] = initialBoard.GetOwner(loc);
+            stoneTypes[i] = initialBoard.GetStone(loc);
+            heights[i] = initialBoard.GetHeight(loc);
         }
+        occupiedBB = occupiedBitBoard();
     }
 
     private State(State prev, Move move) {
@@ -76,78 +70,63 @@ public final class State {
 
         switch (move.type) {
             case Attack:
-                owners[move.from.asIndex()] = Player.None;
-                owners[move.to.asIndex()] = prev.playerToMove;
-                stoneTypes[move.from.asIndex()] = Stone.None;
-                stoneTypes[move.to.asIndex()] = prev.stoneTypes[move.from.asIndex()];
-                heights[move.from.asIndex()] = 0;
-                heights[move.to.asIndex()] = prev.heights[move.from.asIndex()];
+                owners[move.from] = Player.None;
+                owners[move.to] = prev.playerToMove;
+                stoneTypes[move.from] = Stone.None;
+                stoneTypes[move.to] = prev.stoneTypes[move.from];
+                heights[move.from] = 0;
+                heights[move.to] = prev.heights[move.from];
                 break;
             case Strengthen:
-                owners[move.from.asIndex()] = Player.None;
-                owners[move.to.asIndex()] = prev.playerToMove;
-                stoneTypes[move.from.asIndex()] = Stone.None;
-                stoneTypes[move.to.asIndex()] = prev.stoneTypes[move.from.asIndex()];
-                heights[move.from.asIndex()] = 0;
-                heights[move.to.asIndex()] = prev.heights[move.from.asIndex()] +
-                        prev.heights[move.to.asIndex()];
+                owners[move.from] = Player.None;
+                owners[move.to] = prev.playerToMove;
+                stoneTypes[move.from] = Stone.None;
+                stoneTypes[move.to] = prev.stoneTypes[move.from];
+                heights[move.from] = 0;
+                heights[move.to] = prev.heights[move.from] + prev.heights[move.to];
                 break;
             case Pass:
                 break;
         }
+        occupiedBB = occupiedBitBoard();
     }
 
-    private BoardLocation nonEmptyInDirection(BoardLocation from, int dx, int dy) {
-        int x = from.X, y = from.Y;
-        do {
-            x += dx;
-            y += dy;
-        } while (BoardLocation.IsLegal(x, y) && owners[new BoardLocation(x, y).asIndex()] == Player.None);
-
-        return BoardLocation.IsLegal(x, y) ? new BoardLocation(x, y) : null;
-    }
-
-    private List<BoardLocation> toLocations(BoardLocation from) {
-        final List<BoardLocation> result = new ArrayList<>();
-        final BoardLocation n, s, e, w, nw, se;
-        n = nonEmptyInDirection(from, 0, -1);
-        s = nonEmptyInDirection(from, 0, 1);
-        e = nonEmptyInDirection(from, 1, 0);
-        w = nonEmptyInDirection(from, -1, 0);
-        nw = nonEmptyInDirection(from, -1, -1);
-        se = nonEmptyInDirection(from, 1, 1);
-        if (n != null) result.add(n);
-        if (s != null) result.add(s);
-        if (e != null) result.add(e);
-        if (w != null) result.add(w);
-        if (nw != null) result.add(nw);
-        if (se != null) result.add(se);
+    private long occupiedBitBoard() {
+        long result = 0;
+        for (byte loc = 0; loc < Move.N_BOARD_LOCATIONS; loc++) {
+            if (owners[loc] != Player.None) {
+                result |= (1L << loc);
+            }
+        }
         return result;
     }
 
+
     public List<Move> possibleMoves() {
-        final boolean mustAttack = firstMoveOfSequence;
+        final boolean mustAttack = mustAttack();
         final List<Move> result = new ArrayList<>();
 
         if (!mustAttack) {
-            result.add(Move.Pass());
+            result.add(Move.PASS);
         }
-        for (final BoardLocation from : BOARD_LOCATIONS) {
-            if (owners[from.asIndex()] != playerToMove) {
+        for (byte from = 0; from < Move.N_BOARD_LOCATIONS; from++) {
+            if (owners[from] != playerToMove) {
                 continue;
             }
-            for (final BoardLocation to : toLocations(from)) {
-                /* attack? */
+            final long toBB = RayAttacks.positions(occupiedBB, from);
+            for (byte to = 0; to < Move.N_BOARD_LOCATIONS; to++) {
+                if ((toBB & (1L << to)) == 0) {
+                    continue;
+                }
                 final boolean canAttack =
-                        (owners[to.asIndex()] == playerToMove.opponent()) &&
-                                (heights[from.asIndex()] >= heights[to.asIndex()]);
+                        (owners[to] == playerToMove.opponent()) &&
+                                (heights[from] >= heights[to]);
 
                 if (canAttack) {
                     result.add(Move.Attack(from, to));
                 }
 
-                final boolean canStrengthen =
-                        (owners[to.asIndex()] == playerToMove) && !mustAttack;
+                final boolean canStrengthen = !mustAttack && (owners[to] == playerToMove);
                 if (canStrengthen) {
                     result.add(Move.Strengthen(from, to));
                 }
@@ -160,17 +139,16 @@ public final class State {
         return new State(this, move);
     }
 
-
     public Player loser() {
         final int[] stonesByTypeW = new int[3];
         final int[] stonesByTypeB = new int[3];
-        for (final BoardLocation loc : BOARD_LOCATIONS) {
-            switch (owners[loc.asIndex()]) {
+        for (byte loc = 0; loc < Move.N_BOARD_LOCATIONS; loc++) {
+            switch (owners[loc]) {
                 case White:
-                    stonesByTypeW[stoneTypes[loc.asIndex()].value - 1]++;
+                    stonesByTypeW[stoneTypes[loc].value - 1]++;
                     break;
                 case Black:
-                    stonesByTypeB[stoneTypes[loc.asIndex()].value - 1]++;
+                    stonesByTypeB[stoneTypes[loc].value - 1]++;
                     break;
             }
         }
