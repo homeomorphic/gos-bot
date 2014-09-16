@@ -8,33 +8,34 @@ import java.util.List;
 
 final class MoveSearcher {
 
-    private static final long MOVE_TIME_MS = 1500;
+    private static final long MOVE_TIME_MS = Long.MAX_VALUE;
     private static final int MAX_DEPTH = 8;
-    private double nps;
     private long nodes;
+    private long startTime;
+    private boolean flagAboutToFall;
+    private int depth;
 
     private List<Move> principalVariation;
+    private long endTime;
 
 
     public Move search(State state) {
-        final long startTime = System.currentTimeMillis();
-        int depth = 1;
+        startTime = System.currentTimeMillis();
+        depth = 1;
         principalVariation = new ArrayList<>();
+        flagAboutToFall = false;
         SearchResult result;
-        long curTime;
         do {
             result = search(state, depth, 0, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
-            curTime = System.currentTimeMillis();
-            System.err.println("depth = " + depth + "; best move = " + result + "; PV = " + principalVariation);
+            emit();
             depth++;
-        } while (curTime - startTime < MOVE_TIME_MS && depth <= MAX_DEPTH);
-        final long endTime = System.currentTimeMillis();
-        nps = nodes / ((endTime - startTime) / 1000.0);
+        } while (depth <= MAX_DEPTH);
+        endTime = System.currentTimeMillis();
         return result.bestMove;
     }
 
     public double nps() {
-        return nps;
+        return nodes / ((endTime - startTime) / 1000.0);
     }
     public long nodes() {
         return nodes;
@@ -87,7 +88,7 @@ final class MoveSearcher {
                     bestMove = move;
                 }
                 alpha = Math.max(alpha, childResult.eval);
-                if (beta <= alpha) {
+                if (beta <= alpha || timeIsUp()) {
                     break;
                 }
             }
@@ -101,7 +102,7 @@ final class MoveSearcher {
                     bestMove = move;
                 }
                 beta = Math.min(beta, childResult.eval);
-                if (beta <= alpha) {
+                if (beta <= alpha || timeIsUp()) {
                     break;
                 }
             }
@@ -115,7 +116,23 @@ final class MoveSearcher {
             principalVariation.add(result.bestMove);
         }
 
+        if (nodes % 100000 == 0) {
+            emit();
+        }
+
         return result;
+    }
+
+    private void emit() {
+        endTime = System.currentTimeMillis();
+        System.err.println("depth = " + depth + "; PV = " + principalVariation);
+        System.err.println("# nodes = " + nodes + "; nps = " + nps());
+    }
+
+    private boolean timeIsUp() {
+        flagAboutToFall = flagAboutToFall ||
+                (nodes % 10000 == 0) && (System.currentTimeMillis() - startTime >= MOVE_TIME_MS);
+        return flagAboutToFall;
     }
 
 }
