@@ -8,28 +8,31 @@ import java.util.List;
 
 final class MoveSearcher {
 
-    private static final long MOVE_TIME_MS = Long.MAX_VALUE;
+    private static final long MOVE_TIME_MS = 1800;
     private static final int MAX_DEPTH = 8;
+    private final State state;
     private long nodes;
     private long startTime;
     private boolean flagAboutToFall;
     private int depth;
 
-    private List<Move> principalVariation;
+    private final List<Move> principalVariation;
     private long endTime;
 
-
-    public Move search(State state) {
-        startTime = System.currentTimeMillis();
+    public MoveSearcher(State state) {
         depth = 1;
         principalVariation = new ArrayList<>();
         flagAboutToFall = false;
+        this.state = state;
+    }
+
+    public Move search() {
+        startTime = System.currentTimeMillis();
         SearchResult result;
         do {
             result = search(state, depth, 0, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
-            emit();
             depth++;
-        } while (depth <= MAX_DEPTH);
+        } while (depth <= MAX_DEPTH && !timeIsUp());
         endTime = System.currentTimeMillis();
         return result.bestMove;
     }
@@ -59,11 +62,23 @@ final class MoveSearcher {
         }
     }
 
+    private void orderMoves(List<Move> moves, State state, int ply) {
+        if (ply < principalVariation.size()) {
+            final Move preferredMove = principalVariation.get(ply);
+            for (int i = 0; i < moves.size(); i++) {
+                if (moves.get(i).equals(preferredMove)) {
+                    moves.set(i, moves.get(0));
+                    moves.set(0, preferredMove);
+                    break;
+                }
+            }
+        }
+    }
+
     private SearchResult search(State state, int remainingDepth, int ply, float alpha, float beta) {
         final List<Move> moves = state.possibleMoves();
-        if (ply < principalVariation.size()) {
-            Collections.sort(moves, new BetterMoveHeuristic(state, principalVariation, ply));
-        }
+        orderMoves(moves, state, ply);
+
         final Player winner;
         final SearchResult result;
 
@@ -114,10 +129,6 @@ final class MoveSearcher {
             principalVariation.set(ply, result.bestMove);
         } else {
             principalVariation.add(result.bestMove);
-        }
-
-        if (nodes % 100000 == 0) {
-            emit();
         }
 
         return result;

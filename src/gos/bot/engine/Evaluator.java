@@ -4,6 +4,7 @@ import gos.bot.protocol.BoardLocation;
 import gos.bot.protocol.Player;
 
 final class Evaluator {
+    // quite naive
     public static float evaluate(State state) {
         return evaluate(state, Player.White) - evaluate(state, Player.Black);
     }
@@ -21,9 +22,9 @@ final class Evaluator {
         final double stoneDistributionScore =
                 Math.sqrt(stoneDistribution[1]) + Math.sqrt(stoneDistribution[2]) + Math.sqrt(stoneDistribution[3]);
         final double heightDistributionScore =
-                heightDistribution[1] + heightDistribution[2] + heightDistribution[3];
+                Math.sqrt(heightDistribution[1]) + Math.sqrt(heightDistribution[2]) + Math.sqrt(heightDistribution[3]);
 
-        final double score = stoneDistributionScore + heightDistributionScore;
+        final double score = 0.5 * stoneDistributionScore + heightDistributionScore;
 
         return (float)score;
     }
