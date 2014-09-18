@@ -16,7 +16,10 @@ public final class State {
     private final Stone[] stoneTypes;
     private final int[] heights;
 
-    final long occupiedBB;
+    private final long occupied;
+    private final long occupiedW;
+    private final long occupiedB;
+
 
     public Player getPlayerToMove() {
         return playerToMove;
@@ -52,7 +55,9 @@ public final class State {
             stoneTypes[i] = initialBoard.GetStone(loc);
             heights[i] = initialBoard.GetHeight(loc);
         }
-        occupiedBB = occupiedBitBoard();
+        occupiedW = occupation(Player.White);
+        occupiedB = occupation(Player.Black);
+        occupied = occupiedB | occupiedW;
     }
 
     private State(State prev, Move move) {
@@ -88,13 +93,15 @@ public final class State {
             case Pass:
                 break;
         }
-        occupiedBB = occupiedBitBoard();
+        occupiedW = occupation(Player.White);
+        occupiedB = occupation(Player.Black);
+        occupied = occupiedB | occupiedW;
     }
 
-    private long occupiedBitBoard() {
-        long result = 0;
+    private long occupation(Player player) {
+        long result = 0L;
         for (byte loc = 0; loc < Move.N_BOARD_LOCATIONS; loc++) {
-            if (owners[loc] != Player.None) {
+            if (owners[loc] == player) {
                 result |= (1L << loc);
             }
         }
@@ -112,26 +119,26 @@ public final class State {
             result.add(Move.PASS);
         }
 
-        for (byte from = 0; from < Move.N_BOARD_LOCATIONS; from++) {
-            if (owners[from] != playerToMove) {
-                continue;
-            }
-            final long toBB = RayAttacks.positions(occupiedBB, from);
-            for (byte to = 0; to < Move.N_BOARD_LOCATIONS; to++) {
-                if ((toBB & (1L << to)) == 0) {
-                    continue;
-                }
+        long fromPositions = playerToMove == Player.White ? occupiedW : occupiedB;
+        while (fromPositions != 0) {
+            final int from = Long.numberOfTrailingZeros(fromPositions);
+            fromPositions ^= (1L << from);
+
+            long toPositions = RayAttacks.positions(occupied, from);
+            while (toPositions != 0) {
+                final int to = Long.numberOfTrailingZeros(toPositions);
+                toPositions ^= (1L << to);
                 final boolean canAttack =
                         (owners[to] == opponent) &&
                                 (heights[from] >= heights[to]);
 
                 if (canAttack) {
-                    result.add(Move.Attack(from, to));
+                    result.add(Move.Attack((byte)from, (byte)to));
                 }
 
                 final boolean canStrengthen = !mustAttack && (owners[to] == playerToMove);
                 if (canStrengthen) {
-                    result.add(Move.Strengthen(from, to));
+                    result.add(Move.Strengthen((byte)from, (byte)to));
                 }
             }
         }

@@ -40,7 +40,7 @@ final class RayAttacks {
         return result;
     }
 
-    public static long positions(long occupiedBB, byte from) {
+    public static long positions(long occupiedBB, int from) {
         long result = 0;
 
         /* "Forward" rays */
