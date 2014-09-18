@@ -31,8 +31,8 @@ final class MoveSearcher {
         SearchResult result;
         do {
             result = search(state, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
-            emit();
-            System.err.println("eval = " + result.eval);
+            //emit();
+            //System.err.println("eval = " + result.eval);
             depth++;
         } while (depth <= MAX_DEPTH && !timeIsUp());
         endTime = System.currentTimeMillis();
