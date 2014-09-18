@@ -1,2 +1,7 @@
 /bin
 /build
+/*.jar
+*.class
+/.idea/workspace.xml
+/bot.zip
+/example*

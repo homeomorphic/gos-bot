@@ -95,8 +95,6 @@ public class Round {
         outs[0].flush();
         outs[1].println(processedMoveStr);
         outs[1].flush();
-
-        board.Dump();
     }
 
     private void applyMove(Player player, Move move) {
