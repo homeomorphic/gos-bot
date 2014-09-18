@@ -113,6 +113,9 @@ public final class State {
         final boolean mustAttack = mustAttack();
         final List<Move> result = new ArrayList<>(Move.N_BOARD_LOCATIONS * 2 + 1);
 
+        final long myPositions = playerToMove == Player.White ? occupiedW : occupiedB;
+        final long oppPositions = playerToMove == Player.White ? occupiedB : occupiedW;
+
         final Player opponent = playerToMove.opponent();
 
         if (!mustAttack) {
@@ -125,18 +128,21 @@ public final class State {
             fromPositions ^= (1L << from);
 
             long toPositions = RayAttacks.positions(occupied, from);
+            if (mustAttack) {
+                toPositions &= oppPositions;
+            }
             while (toPositions != 0) {
                 final int to = Long.numberOfTrailingZeros(toPositions);
                 toPositions ^= (1L << to);
                 final boolean canAttack =
-                        (owners[to] == opponent) &&
+                        (oppPositions & (1L << to)) != 0 &&
                                 (heights[from] >= heights[to]);
 
                 if (canAttack) {
                     result.add(Move.Attack((byte)from, (byte)to));
                 }
 
-                final boolean canStrengthen = !mustAttack && (owners[to] == playerToMove);
+                final boolean canStrengthen = !mustAttack && (myPositions & (1L << to)) != 0;
                 if (canStrengthen) {
                     result.add(Move.Strengthen((byte)from, (byte)to));
                 }
