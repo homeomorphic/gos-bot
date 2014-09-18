@@ -1,5 +1,7 @@
 package gos.bot.protocol;
 
+import java.util.Arrays;
+
 public class Board
 {
     private final int[][] state;
@@ -28,7 +30,10 @@ public class Board
 
     public Board()
     {
-        state = DefaultState;
+        state = new int[DefaultState.length][];
+        for (int i = 0; i < DefaultState.length; i++) {
+            state[i] = Arrays.copyOf(DefaultState[i], DefaultState[i].length);
+        }
     }
 
     public Board(int[][] initialState)

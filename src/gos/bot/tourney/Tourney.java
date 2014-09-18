@@ -19,13 +19,22 @@ public class Tourney {
 
     public void start() throws Exception {
         for (int i = 0; i < 50; i++) {
-            Round round = new Round(bot1, bot2);
-            Player winner = round.play();
+            Round round;
+            Player winner;
+
+            round = new Round(bot1, bot2);
+            winner = round.play();
             if (winner == Player.White) {
                 bot1wins++;
             } else {
                 bot2wins++;
             }
+
+            System.out.println("**************************************");
+            System.out.println("After " + (2*i+1) + " rounds...");
+            System.out.println("# wins for " + bot1 + " \t " + bot1wins);
+            System.out.println("# wins for " + bot2 + " \t " + bot2wins);
+            System.out.println("**************************************");
 
             round = new Round(bot2, bot1);
             winner = round.play();
@@ -34,10 +43,14 @@ public class Tourney {
             } else {
                 bot1wins++;
             }
+
+            System.out.println("**************************************");
+            System.out.println("After " + (2*i+2) + " rounds...");
+            System.out.println("# wins for " + bot1 + " \t " + bot1wins);
+            System.out.println("# wins for " + bot2 + " \t " + bot2wins);
+            System.out.println("**************************************");
         }
 
-        System.out.println("# wins for " + bot1 + " \t " + bot1wins);
-        System.out.println("# wins for " + bot1 + " \t " + bot2wins);
     }
 
     public static void main(String[] args) throws Exception {
