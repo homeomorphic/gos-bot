@@ -1,10 +1,7 @@
 package gos.bot.tourney;
 
 import com.google.gson.Gson;
-import gos.bot.protocol.InitiateRequest;
 import gos.bot.protocol.Player;
-
-import java.io.*;
 
 public class Tourney {
 
@@ -19,15 +16,15 @@ public class Tourney {
 
     public void start() throws Exception {
         for (int i = 0; i < 50; i++) {
-            Round round;
             Player winner;
 
-            round = new Round(bot1, bot2);
-            winner = round.play();
-            if (winner == Player.White) {
-                bot1wins++;
-            } else {
-                bot2wins++;
+            try (Round round = new Round(bot1, bot2)) {
+                winner = round.play();
+                if (winner == Player.White) {
+                    bot1wins++;
+                } else {
+                    bot2wins++;
+                }
             }
 
             System.out.println("**************************************");
@@ -36,12 +33,13 @@ public class Tourney {
             System.out.println("# wins for " + bot2 + " \t " + bot2wins);
             System.out.println("**************************************");
 
-            round = new Round(bot2, bot1);
-            winner = round.play();
-            if (winner == Player.White) {
-                bot2wins++;
-            } else {
-                bot1wins++;
+            try (Round round = new Round(bot2, bot1)) {
+                winner = round.play();
+                if (winner == Player.White) {
+                    bot2wins++;
+                } else {
+                    bot1wins++;
+                }
             }
 
             System.out.println("**************************************");

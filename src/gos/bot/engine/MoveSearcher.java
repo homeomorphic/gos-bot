@@ -67,6 +67,7 @@ final class MoveSearcher {
     private void orderMoves(List<Move> moves, State state, int ply) {
         if (ply < principalVariation.size()) {
             final Move preferredMove = principalVariation.get(ply);
+
             for (int i = 0; i < moves.size(); i++) {
                 if (moves.get(i).equals(preferredMove)) {
                     moves.set(i, moves.get(0));
