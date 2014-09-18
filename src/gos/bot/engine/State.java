@@ -104,11 +104,14 @@ public final class State {
 
     public List<Move> possibleMoves() {
         final boolean mustAttack = mustAttack();
-        final List<Move> result = new ArrayList<>();
+        final List<Move> result = new ArrayList<>(Move.N_BOARD_LOCATIONS * 2 + 1);
+
+        final Player opponent = playerToMove.opponent();
 
         if (!mustAttack) {
             result.add(Move.PASS);
         }
+
         for (byte from = 0; from < Move.N_BOARD_LOCATIONS; from++) {
             if (owners[from] != playerToMove) {
                 continue;
@@ -119,7 +122,7 @@ public final class State {
                     continue;
                 }
                 final boolean canAttack =
-                        (owners[to] == playerToMove.opponent()) &&
+                        (owners[to] == opponent) &&
                                 (heights[from] >= heights[to]);
 
                 if (canAttack) {
