@@ -20,6 +20,13 @@ public final class State {
     private final long occupiedW;
     private final long occupiedB;
 
+    public long getOccupied(Player player) {
+        switch (player) {
+            case Black: return occupiedB;
+            case White: return occupiedW;
+            default: throw new IllegalArgumentException("player");
+        }
+    }
 
     public Player getPlayerToMove() {
         return playerToMove;

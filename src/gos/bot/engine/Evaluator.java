@@ -2,30 +2,49 @@ package gos.bot.engine;
 
 import gos.bot.protocol.BoardLocation;
 import gos.bot.protocol.Player;
+import gos.bot.protocol.Stone;
 
 final class Evaluator {
     // quite naive
-    public static float evaluate(State state) {
+    public static int evaluate(State state) {
         return evaluate(state, Player.White) - evaluate(state, Player.Black);
     }
 
-    private static float evaluate(State state, Player player) {
+    private static int evaluate(State state, Player player) {
+
+        final int[][] heightDistribution = new int[4][];
+        final int[] maxHeightDistribution = new int[4];
         final int[] stoneDistribution = new int[4];
-        final int[] heightDistribution = new int[4];
-        for (byte loc = 0; loc < Move.N_BOARD_LOCATIONS; loc++) {
-            if (player == state.getOwner(loc)) {
-                stoneDistribution[state.getStoneType(loc).value]++;
-                heightDistribution[state.getStoneType(loc).value] =
-                        Math.max(heightDistribution[state.getStoneType(loc).value], state.getHeight(loc));
-            }
+        for (final Stone stone : Stone.values()) {
+            heightDistribution[stone.value] = new int[30];
         }
-        final double stoneDistributionScore =
-                Math.sqrt(stoneDistribution[1]) + Math.sqrt(stoneDistribution[2]) + Math.sqrt(stoneDistribution[3]);
-        final double heightDistributionScore =
-                Math.sqrt(heightDistribution[1]) + Math.sqrt(heightDistribution[2]) + Math.sqrt(heightDistribution[3]);
 
-        final double score = 0.5 * stoneDistributionScore + heightDistributionScore;
+        long occupied = state.getOccupied(player);
+        while (occupied != 0L) {
+            final byte pos = (byte)Long.numberOfTrailingZeros(occupied);
+            occupied ^= (1L << pos);
+            final Stone stone = state.getStoneType(pos);
+            final int height = state.getHeight(pos);
+            stoneDistribution[stone.value]++;
+            heightDistribution[stone.value][height]++;
+            maxHeightDistribution[stone.value] = Math.max(maxHeightDistribution[stone.value], height);
+        }
 
-        return (float)score;
+        final int scoreA = score(heightDistribution[1], maxHeightDistribution[1]) * stoneDistribution[1];
+        final int scoreB = score(heightDistribution[2], maxHeightDistribution[2]) * stoneDistribution[2];
+        final int scoreC = score(heightDistribution[3], maxHeightDistribution[3]) * stoneDistribution[3];
+
+        final int minScore = Math.min(scoreA, Math.min(scoreB, scoreC));
+        final int score = minScore * 10 + (scoreA + scoreB + scoreC);
+        return score;
+    }
+
+    private static int score(int[] heightDistribution, int maxHeight) {
+        int result = 0;
+        for (int i = 0; i <= maxHeight; i++) {
+            result += heightDistribution[i];
+        }
+        result += 9 * maxHeight;
+        return result;
     }
 }

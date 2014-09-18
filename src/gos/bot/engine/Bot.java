@@ -25,7 +25,9 @@ public final class Bot implements IBot {
 
     @Override
     public gos.bot.protocol.Move handleMove(MoveRequest request) {
-        System.err.println("# moves " + currentState.possibleMoves().size());
+        System.err.println("");
+        System.err.println("");
+        System.err.println("");
         final MoveSearcher moveSearcher = new MoveSearcher(currentState);
         final Move chosen = moveSearcher.search();
         System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());

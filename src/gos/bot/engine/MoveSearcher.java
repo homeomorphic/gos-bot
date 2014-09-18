@@ -30,8 +30,9 @@ final class MoveSearcher {
         startTime = System.currentTimeMillis();
         SearchResult result;
         do {
-            result = search(state, depth, 0, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
+            result = search(state, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
             emit();
+            System.err.println("eval = " + result.eval);
             depth++;
         } while (depth <= MAX_DEPTH && !timeIsUp());
         endTime = System.currentTimeMillis();
@@ -46,10 +47,10 @@ final class MoveSearcher {
     }
 
     private static final class SearchResult {
-        public final float eval;
+        public final int eval;
         public final Move bestMove;
 
-        public SearchResult(float eval, Move bestMove) {
+        public SearchResult(int eval, Move bestMove) {
             this.eval = eval;
             this.bestMove = bestMove;
         }
@@ -76,7 +77,7 @@ final class MoveSearcher {
         }
     }
 
-    private SearchResult search(State state, int remainingDepth, int ply, float alpha, float beta) {
+    private SearchResult search(State state, int remainingDepth, int ply, int alpha, int beta) {
         final List<Move> moves = state.possibleMoves();
         orderMoves(moves, state, ply);
 
@@ -90,10 +91,10 @@ final class MoveSearcher {
         }
 
         if (winner != Player.None) {
-            final float eval = winner == Player.White ? Float.POSITIVE_INFINITY : Float.NEGATIVE_INFINITY;
+            final int eval = winner == Player.White ? Integer.MAX_VALUE : Integer.MIN_VALUE;
             result = new SearchResult(eval, null);
         } else if (remainingDepth == 0) {
-            final float eval = Evaluator.evaluate(state);
+            final int eval = Evaluator.evaluate(state);
             result = new SearchResult(eval, null);
         } else if (state.getPlayerToMove() == Player.White) {
             Move bestMove = null;
