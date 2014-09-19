@@ -105,6 +105,19 @@ public final class State {
         occupied = occupiedB | occupiedW;
     }
 
+    public Board asProtocolBoard() {
+        final Board result = new Board();
+        for (byte pos = 0; pos < Move.N_BOARD_LOCATIONS; pos++) {
+            final BoardLocation loc = Move.BOARD_LOCATIONS[pos];
+            if (owners[pos] == Player.None) {
+                result.ClearSpace(loc);
+            } else {
+                result.SetSpace(loc, owners[pos], stoneTypes[pos], heights[pos]);
+            }
+        }
+        return result;
+    }
+
     private long occupation(Player player) {
         long result = 0L;
         for (byte loc = 0; loc < Move.N_BOARD_LOCATIONS; loc++) {

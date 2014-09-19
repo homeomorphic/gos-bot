@@ -31,8 +31,8 @@ final class MoveSearcher {
         SearchResult result;
         do {
             result = search(state, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
-            //emit();
-            //System.err.println("eval = " + result.eval);
+            emit();
+            System.err.println("eval = " + result.eval);
             depth++;
         } while (depth <= MAX_DEPTH && !timeIsUp());
         endTime = System.currentTimeMillis();
@@ -82,13 +82,12 @@ final class MoveSearcher {
         final List<Move> moves = state.possibleMoves();
         orderMoves(moves, state, ply);
 
-        final Player winner;
+        Player winner;
         final SearchResult result;
 
-        if (moves.size() == 0) {
+        winner = state.loser().opponent();
+        if (winner == Player.None && moves.size() == 0) {
             winner = state.getPlayerToMove().opponent();
-        } else {
-            winner = state.loser().opponent();
         }
 
         if (winner != Player.None) {

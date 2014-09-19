@@ -31,9 +31,7 @@ public class BoardLocation
 
     @Override
     public String toString() {
-        return "{X=" + X +
-               ",Y=" + Y +
-               '}';
+        return ToLabel();
     }
 
     @Override
