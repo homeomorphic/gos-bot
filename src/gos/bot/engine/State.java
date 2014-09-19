@@ -130,45 +130,7 @@ public final class State {
 
 
     public List<Move> possibleMoves() {
-        final boolean mustAttack = mustAttack();
-        final List<Move> result = new ArrayList<>(Move.N_BOARD_LOCATIONS * 2 + 1);
-
-        final long myPositions = playerToMove == Player.White ? occupiedW : occupiedB;
-        final long oppPositions = playerToMove == Player.White ? occupiedB : occupiedW;
-
-        final Player opponent = playerToMove.opponent();
-
-        if (!mustAttack) {
-            result.add(Move.PASS);
-        }
-
-        long fromPositions = playerToMove == Player.White ? occupiedW : occupiedB;
-        while (fromPositions != 0) {
-            final int from = Long.numberOfTrailingZeros(fromPositions);
-            fromPositions ^= (1L << from);
-
-            long toPositions = RayAttacks.positions(occupied, from);
-            if (mustAttack) {
-                toPositions &= oppPositions;
-            }
-            while (toPositions != 0) {
-                final int to = Long.numberOfTrailingZeros(toPositions);
-                toPositions ^= (1L << to);
-                final boolean canAttack =
-                        (oppPositions & (1L << to)) != 0 &&
-                                (heights[from] >= heights[to]);
-
-                if (canAttack) {
-                    result.add(Move.Attack((byte)from, (byte)to));
-                }
-
-                final boolean canStrengthen = !mustAttack && (myPositions & (1L << to)) != 0;
-                if (canStrengthen) {
-                    result.add(Move.Strengthen((byte)from, (byte)to));
-                }
-            }
-        }
-        return result;
+        return possibleMovesFor(playerToMove, mustAttack());
     }
 
     public State applyMove(final Move move) {
@@ -197,6 +159,49 @@ public final class State {
             return Player.None;
         }
     }
+
+
+    public List<Move> possibleMovesFor(Player player, boolean mustAttack) {
+        final List<Move> result = new ArrayList<>(Move.N_BOARD_LOCATIONS * 2 + 1);
+
+        final long myPositions = player == Player.White ? occupiedW : occupiedB;
+        final long oppPositions = player == Player.White ? occupiedB : occupiedW;
+
+        final Player opponent = player.opponent();
+
+        if (!mustAttack) {
+            result.add(Move.PASS);
+        }
+
+        long fromPositions = player == Player.White ? occupiedW : occupiedB;
+        while (fromPositions != 0) {
+            final int from = Long.numberOfTrailingZeros(fromPositions);
+            fromPositions ^= (1L << from);
+
+            long toPositions = RayAttacks.positions(occupied, from);
+            if (mustAttack) {
+                toPositions &= oppPositions;
+            }
+            while (toPositions != 0) {
+                final int to = Long.numberOfTrailingZeros(toPositions);
+                toPositions ^= (1L << to);
+                final boolean canAttack =
+                        (oppPositions & (1L << to)) != 0 &&
+                                (heights[from] >= heights[to]);
+
+                if (canAttack) {
+                    result.add(Move.Attack((byte)from, (byte)to));
+                }
+
+                final boolean canStrengthen = !mustAttack && (myPositions & (1L << to)) != 0;
+                if (canStrengthen) {
+                    result.add(Move.Strengthen((byte)from, (byte)to));
+                }
+            }
+        }
+        return result;
+    }
+
 
     @Override
     public boolean equals(Object o) {

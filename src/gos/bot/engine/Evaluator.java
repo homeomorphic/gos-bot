@@ -36,16 +36,12 @@ final class Evaluator {
 
         final int minScore = Math.min(scoreA, Math.min(scoreB, scoreC));
 
-        final int mobilityScore = state.possibleMoves().size();
+        final int mobilityScore = 0; // state.possibleMovesFor(player, true).size();
         final int score = minScore * 10 + (scoreA + scoreB + scoreC) + mobilityScore;
         return score;
     }
 
     private static final int[] SAFETY = { 0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 6, 6 } ;
-
-    private static int danger(int no) {
-        return 0;
-    }
 
     private static int score(int[] heightDistribution, int maxHeight) {
         int result = 0;
