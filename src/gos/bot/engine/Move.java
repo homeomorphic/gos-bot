@@ -88,9 +88,13 @@ public final class Move {
     }
 
     public gos.bot.protocol.Move asProtocolMove() {
-        final BoardLocation from = BOARD_LOCATIONS[this.from];
-        final BoardLocation to = BOARD_LOCATIONS[this.to];
-        return new gos.bot.protocol.Move(type, from, to);
+        if (type == MoveType.Pass) {
+            return new gos.bot.protocol.Move(type, null, null);
+        } else {
+            final BoardLocation from = BOARD_LOCATIONS[this.from];
+            final BoardLocation to = BOARD_LOCATIONS[this.to];
+            return new gos.bot.protocol.Move(type, from, to);
+        }
     }
 
     public static byte fromBoardLocation(BoardLocation boardLocation) {

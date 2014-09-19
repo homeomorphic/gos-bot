@@ -92,7 +92,7 @@ final class MoveSearcher {
         }
 
         if (winner != Player.None) {
-            final int eval = winner == Player.White ? Integer.MAX_VALUE : Integer.MIN_VALUE;
+            final int eval = winner == Player.White ? Integer.MAX_VALUE - ply: Integer.MIN_VALUE + ply;
             result = new SearchResult(eval, null);
         } else if (remainingDepth == 0) {
             final int eval = Evaluator.evaluate(state);
