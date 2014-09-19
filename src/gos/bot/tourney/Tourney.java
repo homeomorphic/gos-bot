@@ -15,7 +15,7 @@ public class Tourney {
     }
 
     public void start() throws Exception {
-        for (int i = 0; i < 25; i++) {
+        for (int i = 0; i < 10; i++) {
             Player winner;
 
             try (Round round = new Round(bot1, bot2)) {

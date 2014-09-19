@@ -1,6 +1,8 @@
-java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney bot-master.jar bot-v2.jar > tourney1 &
-java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney bot-master.jar bot-v2.jar > tourney2 &
-java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney bot-master.jar bot-v2.jar > tourney3 &
-java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney bot-master.jar bot-v2.jar > tourney4 &
+#!/bin/bash
+BOT1=$1
+BOT2=bot-v3.jar
 
-tail -f tourney{1,2,3,4}
+java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney "$BOT1" "$BOT2"
+#java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney "$BOT1" "$BOT2" > tourney2 &
+#java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney "$BOT1" "$BOT2" > tourney3 &
+#java -cp out/production/gos-bot/:lib/gson-2.3.jar gos.bot.tourney.Tourney "$BOT1" "$BOT2" > tourney4 &
