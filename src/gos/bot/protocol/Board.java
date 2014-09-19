@@ -132,9 +132,9 @@ public class Board
 
     public void Dump()
     {
-        System.out.print("-- owners --------  ");
-        System.out.print("-- stones --------  ");
-        System.out.println("-- heights ----------------");
+        System.err.print("-- owners --------  ");
+        System.err.print("-- stones --------  ");
+        System.err.println("-- heights ----------------");
         for (int y = 0; y < 9; y++)
         {
             for (int x = 0; x < 9; x++)
@@ -151,9 +151,9 @@ public class Board
                 {
                     c = ' ';
                 }
-                System.out.print(" " + c);
+                System.err.print(" " + c);
             }
-            System.out.print("  ");
+            System.err.print("  ");
             for (int x = 0; x < 9; x++)
             {
                 char c;
@@ -169,9 +169,9 @@ public class Board
                 {
                     c = ' ';
                 }
-                System.out.print(" " + c);
+                System.err.print(" " + c);
             }
-            System.out.print("  ");
+            System.err.print("  ");
             for (int x = 0; x < 9; x++)
             {
                 String s;
@@ -184,18 +184,18 @@ public class Board
                 {
                     s = "  ";
                 }
-                System.out.print(" " + s);
+                System.err.print(" " + s);
             }
-            System.out.println();
+            System.err.println();
         }
-        System.out.print("------------------  ");
-        System.out.print("------------------  ");
-        System.out.println("---------------------------");
-        System.out.print("White: "
+        System.err.print("------------------  ");
+        System.err.print("------------------  ");
+        System.err.println("---------------------------");
+        System.err.print("White: "
                 + GetTotalCount(Player.White, Stone.A) + " a, "
                 + GetTotalCount(Player.White, Stone.B) + " b, "
                 + GetTotalCount(Player.White, Stone.C) + " c");
-        System.out.println("  Black: "
+        System.err.println("  Black: "
                 + GetTotalCount(Player.Black, Stone.A) + " a, "
                 + GetTotalCount(Player.Black, Stone.B) + " b, "
                 + GetTotalCount(Player.Black, Stone.C) + " c");

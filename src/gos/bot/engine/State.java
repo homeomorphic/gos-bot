@@ -82,6 +82,10 @@ public final class State {
 
         switch (move.type) {
             case Attack:
+                if (!(prev.owners[move.to].opponent() == prev.owners[move.from] &&
+                        prev.heights[move.to] <= prev.heights[move.from])) {
+                    throw new IllegalArgumentException("illegal move");
+                }
                 owners[move.from] = Player.None;
                 owners[move.to] = prev.playerToMove;
                 stoneTypes[move.from] = Stone.None;
@@ -90,6 +94,9 @@ public final class State {
                 heights[move.to] = prev.heights[move.from];
                 break;
             case Strengthen:
+                if (!(prev.owners[move.to] == owners[move.from] && !prev.mustAttack())) {
+                    throw new IllegalArgumentException("illegal move");
+                }
                 owners[move.from] = Player.None;
                 owners[move.to] = prev.playerToMove;
                 stoneTypes[move.from] = Stone.None;
@@ -190,12 +197,12 @@ public final class State {
                                 (heights[from] >= heights[to]);
 
                 if (canAttack) {
-                    result.add(Move.Attack((byte)from, (byte)to));
+                    result.add(Move.attack((byte) from, (byte) to));
                 }
 
                 final boolean canStrengthen = !mustAttack && (myPositions & (1L << to)) != 0;
                 if (canStrengthen) {
-                    result.add(Move.Strengthen((byte)from, (byte)to));
+                    result.add(Move.strengthen((byte) from, (byte) to));
                 }
             }
         }

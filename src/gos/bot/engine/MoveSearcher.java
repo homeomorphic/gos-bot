@@ -4,6 +4,7 @@ import gos.bot.protocol.Player;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 final class MoveSearcher {
@@ -16,27 +17,37 @@ final class MoveSearcher {
     private boolean flagAboutToFall;
     private int depth;
 
-    private final List<Move> principalVariation;
     private long endTime;
+    private Move[] lastPrincipalVariation = new Move[MAX_DEPTH+1];
 
     public MoveSearcher(State state) {
         depth = 1;
-        principalVariation = new ArrayList<>();
         flagAboutToFall = false;
         this.state = state;
     }
 
-    public Move search() {
+    public SearchResult search() {
         startTime = System.currentTimeMillis();
-        SearchResult result;
+        SearchResult result = null;
         do {
-            result = search(state, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
-            //emit();
-            //System.err.println("eval = " + result.eval);
+            final SearchResult levelResult = search(state, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            if (timeIsUp()) {
+                if (result == null) {
+                    System.err.println("** SLOW WARNING **");
+                    result = levelResult;
+                }
+                break;
+            }
+            result = levelResult;
+            for (int i = 0; i < lastPrincipalVariation.length; i++) {
+                lastPrincipalVariation[i] = i < result.principalVariation.size() ? result.principalVariation.get(i)
+                                                                                 : null;
+            }
+            System.err.println("eval = " + result);
             depth++;
-        } while (depth <= MAX_DEPTH && !timeIsUp());
+        } while (depth <= MAX_DEPTH);
         endTime = System.currentTimeMillis();
-        return result.bestMove;
+        return result;
     }
 
     public double nps() {
@@ -46,28 +57,27 @@ final class MoveSearcher {
         return nodes;
     }
 
-    private static final class SearchResult {
+    static final class SearchResult {
         public final int eval;
-        public final Move bestMove;
+        public final LinkedList<Move> principalVariation;
 
-        public SearchResult(int eval, Move bestMove) {
+        public SearchResult(int eval, LinkedList<Move> principalVariation) {
             this.eval = eval;
-            this.bestMove = bestMove;
+            this.principalVariation = principalVariation;
         }
 
         @Override
         public String toString() {
             return "SearchResult{" +
                     "eval=" + eval +
-                    ", bestMove=" + bestMove +
+                    ", principalVariation=" + principalVariation +
                     '}';
         }
     }
 
     private void orderMoves(List<Move> moves, State state, int ply) {
-        if (ply < principalVariation.size()) {
-            final Move preferredMove = principalVariation.get(ply);
-
+        if (ply < lastPrincipalVariation.length) {
+            final Move preferredMove = lastPrincipalVariation[ply];
             for (int i = 0; i < moves.size(); i++) {
                 if (moves.get(i).equals(preferredMove)) {
                     moves.set(i, moves.get(0));
@@ -92,54 +102,45 @@ final class MoveSearcher {
 
         if (winner != Player.None) {
             final int eval = winner == Player.White ? Integer.MAX_VALUE - ply: Integer.MIN_VALUE + ply;
-            result = new SearchResult(eval, null);
+            result = new SearchResult(eval, new LinkedList<Move>());
         } else if (remainingDepth == 0) {
             final int eval = Evaluator.evaluate(state);
-            result = new SearchResult(eval, null);
+            result = new SearchResult(eval, new LinkedList<Move>());
         } else if (state.getPlayerToMove() == Player.White) {
-            Move bestMove = null;
+            LinkedList<Move> pv = null;
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
                 final SearchResult childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta);
-                if (childResult.eval > alpha || bestMove == null) {
-                    bestMove = move;
+                if (childResult.eval > alpha || pv == null) {
+                    pv = childResult.principalVariation;
+                    childResult.principalVariation.addFirst(move);
                 }
                 alpha = Math.max(alpha, childResult.eval);
                 if (beta <= alpha || timeIsUp()) {
                     break;
                 }
             }
-            result = new SearchResult(alpha, bestMove);
+            result = new SearchResult(alpha, pv);
         } else {
-            Move bestMove = null;
+            LinkedList<Move> pv = null;
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
                 final SearchResult childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta);
-                if (childResult.eval < beta || bestMove == null) {
-                    bestMove = move;
+                if (childResult.eval < beta || pv == null) {
+                    pv = childResult.principalVariation;
+                    childResult.principalVariation.addFirst(move);
                 }
                 beta = Math.min(beta, childResult.eval);
                 if (beta <= alpha || timeIsUp()) {
                     break;
                 }
             }
-            result = new SearchResult(beta, bestMove);
+            result = new SearchResult(beta, pv);
         }
 
         nodes++;
-        if (ply < principalVariation.size()) {
-            principalVariation.set(ply, result.bestMove);
-        } else {
-            principalVariation.add(result.bestMove);
-        }
 
         return result;
-    }
-
-    private void emit() {
-        endTime = System.currentTimeMillis();
-        System.err.println("depth = " + depth + "; PV = " + principalVariation);
-        System.err.println("# nodes = " + nodes + "; nps = " + nps());
     }
 
     private boolean timeIsUp() {

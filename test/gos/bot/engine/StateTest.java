@@ -66,13 +66,13 @@ public class StateTest extends TestCase {
                                 (state.getHeight(from) >= state.getHeight(toB));
 
                 if (canAttack) {
-                    result.add(Move.Attack(from, toB));
+                    result.add(Move.attack(from, toB));
                 }
 
                 final boolean canStrengthen =
                         (state.getOwner(toB) == state.getPlayerToMove()) && !mustAttack;
                 if (canStrengthen) {
-                    result.add(Move.Strengthen(from, toB));
+                    result.add(Move.strengthen(from, toB));
                 }
             }
         }

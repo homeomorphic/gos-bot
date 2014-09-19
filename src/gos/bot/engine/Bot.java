@@ -25,10 +25,10 @@ public final class Bot implements IBot {
 
     @Override
     public gos.bot.protocol.Move handleMove(MoveRequest request) {
-        //currentState.asProtocolBoard().Dump();
+        currentState.asProtocolBoard().Dump();
         final MoveSearcher moveSearcher = new MoveSearcher(currentState);
-        final Move chosen = moveSearcher.search();
-        //System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());
+        final Move chosen = moveSearcher.search().principalVariation.getFirst();
+        System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());
         return chosen.asProtocolMove();
     }
 

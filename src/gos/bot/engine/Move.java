@@ -59,11 +59,11 @@ public final class Move {
 
     public static final Move PASS = new Move(MoveType.Pass, (byte)-1, (byte)-1);
 
-    public static Move Attack(byte from, byte to) {
+    public static Move attack(byte from, byte to) {
         return new Move(MoveType.Attack, from, to);
     }
 
-    public static Move Strengthen(byte from, byte to) {
+    public static Move strengthen(byte from, byte to) {
         return new Move(MoveType.Strengthen, from, to);
     }
 
