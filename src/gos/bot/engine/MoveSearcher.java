@@ -33,7 +33,7 @@ final class MoveSearcher {
             final SearchResult levelResult = search(state, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
             if (timeIsUp()) {
                 if (result == null) {
-                    System.err.println("** SLOW WARNING **");
+                    //System.err.println("** SLOW WARNING **");
                     result = levelResult;
                 }
                 break;
@@ -43,7 +43,7 @@ final class MoveSearcher {
                 lastPrincipalVariation[i] = i < result.principalVariation.size() ? result.principalVariation.get(i)
                                                                                  : null;
             }
-            System.err.println("eval = " + result);
+            //System.err.println("eval = " + result);
             depth++;
         } while (depth <= MAX_DEPTH);
         endTime = System.currentTimeMillis();

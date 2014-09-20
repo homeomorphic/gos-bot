@@ -28,7 +28,7 @@ public final class Bot implements IBot {
         currentState.asProtocolBoard().Dump();
         final MoveSearcher moveSearcher = new MoveSearcher(currentState);
         final Move chosen = moveSearcher.search().principalVariation.getFirst();
-        System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());
+        //System.err.println("nps = " + moveSearcher.nps() + "; # = " + moveSearcher.nodes());
         return chosen.asProtocolMove();
     }
 
