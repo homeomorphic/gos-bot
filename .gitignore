@@ -3,5 +3,6 @@
 /*.jar
 *.class
 /.idea/workspace.xml
-/bot.zip
+/*.zip
 /example*
+/out-ec2*
