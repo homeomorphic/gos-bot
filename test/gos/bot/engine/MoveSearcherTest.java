@@ -81,35 +81,5 @@ public class MoveSearcherTest extends TestCase {
         stack.push(state().applyMove(move));
     }
 
-    public void unusedtestInMate() {
-        final MoveSearcher moveSearcher = new MoveSearcher(state());
-        final MoveSearcher.SearchResult result = moveSearcher.search();
-        assertTrue("white is winning", result.eval >= 100000);
-    }
-
-    public void testMateInOne() {
-        stack.pop();
-        final MoveSearcher moveSearcher = new MoveSearcher(state());
-        final MoveSearcher.SearchResult result = moveSearcher.search();
-        assertTrue("white is winning", result.eval >= 100000);
-    }
-
-    public void testMateInTwo() {
-        stack.pop();
-        stack.pop();
-        final MoveSearcher moveSearcher = new MoveSearcher(state());
-        final MoveSearcher.SearchResult result = moveSearcher.search();
-        assertTrue("white is winning", result.eval >= 100000);
-    }
-
-    public void testAvoidMateInTwo() {
-        stack.pop();
-        stack.pop();
-        stack.pop();
-        state().possibleMoves();
-        final MoveSearcher moveSearcher = new MoveSearcher(state());
-        final MoveSearcher.SearchResult result = moveSearcher.search();
-        assertTrue("white is winning", result.eval >= 100000);
-    }
 
 }
