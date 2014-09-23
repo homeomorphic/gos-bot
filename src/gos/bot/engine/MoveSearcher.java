@@ -5,6 +5,7 @@ import gos.bot.protocol.Player;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 final class MoveSearcher {
 
@@ -18,9 +19,11 @@ final class MoveSearcher {
     private long endTime;
     private Move[] lastPrincipalVariation;
 
-    private TranspositionTable transpositionTable;
+    //private TranspositionTable transpositionTable;
+    private Move[][] killerMove;
+
     public MoveSearcher() {
-        transpositionTable = new TranspositionTable();
+     //   transpositionTable = new TranspositionTable();
     }
 
     public Move search(State rootState) {
@@ -30,11 +33,15 @@ final class MoveSearcher {
         depth = 1;
         endTime = 0;
         lastPrincipalVariation = new Move[MAX_DEPTH+1];
+        killerMove = new Move[MAX_DEPTH+1][];
+        for (int i = 0; i < killerMove.length; i++) {
+            killerMove[i] = new Move[2];
+        }
 
         SearchResult lastCompleteSearchResult = null;
         do {
             final SearchResult searchResult =
-                    search(rootState, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE, null);
+                    search(rootState, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
             if (timeIsUp()) {
                 if (lastCompleteSearchResult == null) {
@@ -82,16 +89,26 @@ final class MoveSearcher {
         }
     }
 
-    private List<Move> orderMoves(List<Move> moves, State state, int ply, TranspositionTable.Entry existingEntry) {
+    private List<Move> orderMoves(List<Move> moves, State state, int ply) {
 
         final Move pref0 = lastPrincipalVariation[ply];
-        final Move pref1 = existingEntry != null ? existingEntry.bestMove : null;
+        Move pref1 = killerMove[ply][0];
+        Move pref2 = killerMove[ply][1];
+        if (Objects.equals(pref0, pref1)) {
+            pref1 = null;
+        }
+        if (Objects.equals(pref0, pref2) || Objects.equals(pref1, pref2)) {
+            pref2 = null;
+        }
 
         boolean hasPref0 = false;
         boolean hasPref1 = false;
+        boolean hasPref2 = false;
         for (final Move move : moves) {
             hasPref0 = hasPref0 | move.equals(pref0);
             hasPref1 = hasPref1 | move.equals(pref1);
+            hasPref2 = hasPref2 | move.equals(pref2);
+
         }
 
         final List<Move> result = new ArrayList<Move>(moves.size());
@@ -101,9 +118,12 @@ final class MoveSearcher {
         if (hasPref1) {
             result.add(pref1);
         }
+        if (hasPref2) {
+            result.add(pref2);
+        }
 
         for (final Move move : moves) {
-            if (!move.equals(pref0) && !move.equals(pref1)) {
+            if (!move.equals(pref0) && !move.equals(pref1) && !move.equals(pref2)) {
                 result.add(move);
             }
         }
@@ -113,10 +133,9 @@ final class MoveSearcher {
 
 
 
-    private SearchResult search(State state, int remainingDepth, int ply, int alpha, int beta,
-                                    TranspositionTable.Entry existingEntry) {
+    private SearchResult search(State state, int remainingDepth, int ply, int alpha, int beta) {
         final List<Move> possibleMoves = state.possibleMoves();
-        final List<Move> moves = orderMoves(possibleMoves, state, ply, existingEntry);
+        final List<Move> moves = orderMoves(possibleMoves, state, ply);
 
         Player winner;
 
@@ -140,17 +159,8 @@ final class MoveSearcher {
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
 
-                final TranspositionTable.Entry existingChildEntry =
-                            transpositionTable.lookup(childState);
-
                 final SearchResult childResult;
-                if (existingChildEntry != null && existingChildEntry.evaluation >= beta
-                        && existingChildEntry.isUsableForLowerBound(remainingDepth)) {
-                    final int childEval = existingChildEntry.evaluation;
-                    childResult = new SearchResult(childEval);
-                } else {
-                    childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta, existingChildEntry);
-                }
+                childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta);
 
                 if (childResult.eval > alpha || pv == null) {
                     pv = childResult.pv;
@@ -159,6 +169,10 @@ final class MoveSearcher {
 
                 alpha = Math.max(alpha, childResult.eval);
                 if (beta <= alpha) {                    /* Score will be >= beta. beta-cutoff. */
+                    if (!move.equals(killerMove[ply][0])) {
+                        killerMove[ply][1] = killerMove[ply][0];
+                        killerMove[ply][0] = move;
+                    }
                     entryType = TranspositionTable.EntryType.LOWER_BOUND;
                     break;
                 }
@@ -172,17 +186,8 @@ final class MoveSearcher {
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
 
-                final TranspositionTable.Entry existingChildEntry =
-                        transpositionTable.lookup(childState);
-
                 final SearchResult childResult;
-                if (existingChildEntry != null && existingChildEntry.evaluation <= alpha
-                        && existingChildEntry.isUsableForUpperBound(remainingDepth)) {
-                    final int childEval = existingChildEntry.evaluation;
-                    childResult = new SearchResult(childEval);
-                } else {
-                    childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta, existingChildEntry);
-                }
+                childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta);
 
                 if (childResult.eval < beta || pv == null) {
                     pv = childResult.pv;
@@ -192,6 +197,10 @@ final class MoveSearcher {
                 beta = Math.min(beta, childResult.eval);
                 if (beta <= alpha) {
                     /* Score will be <= alpha. alpha-cutoff. */
+                    if (!move.equals(killerMove[ply][0])) {
+                        killerMove[ply][1] = killerMove[ply][0];
+                        killerMove[ply][0] = move;
+                    }
                     entryType = TranspositionTable.EntryType.UPPER_BOUND;
                     break;
                 }
@@ -200,12 +209,6 @@ final class MoveSearcher {
                 }
             }
             result = new SearchResult(beta, pv);
-        }
-
-        if (!timeIsUp()) {
-            transpositionTable.store(
-                    new TranspositionTable.Entry(state, remainingDepth, result.eval, entryType, result.bestMove()));
-
         }
 
         nodes++;
