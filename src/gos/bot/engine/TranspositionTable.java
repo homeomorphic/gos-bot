@@ -43,7 +43,7 @@ final class TranspositionTable {
 
     public Entry lookup(State state) {
         return null;
-        /*
+/*
         final int hash = hash(state);
         final Entry entry0 = pvTable[hash];
         final Entry entry1 = table[hash];
@@ -61,7 +61,8 @@ final class TranspositionTable {
 
 
     public void store(Entry entry) {
-        return; /*
+        return;
+        /*
         final int hash = hash(entry.state);
         final Entry existingEntry = table[hash];
 

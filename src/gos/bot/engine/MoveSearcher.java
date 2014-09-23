@@ -2,6 +2,7 @@ package gos.bot.engine;
 
 import gos.bot.protocol.Player;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -81,27 +82,41 @@ final class MoveSearcher {
         }
     }
 
-    private void orderMoves(List<Move> moves, State state, int ply) {
-        if (ply < lastPrincipalVariation.length) {
-            final Move preferredMove = lastPrincipalVariation[ply];
-            for (int i = 0; i < moves.size(); i++) {
-                if (moves.get(i).equals(preferredMove)) {
-                    moves.set(i, moves.get(0));
-                    moves.set(0, preferredMove);
-                    break;
-                }
+    private List<Move> orderMoves(List<Move> moves, State state, int ply, TranspositionTable.Entry existingEntry) {
+
+        final Move pref0 = lastPrincipalVariation[ply];
+        final Move pref1 = existingEntry != null ? existingEntry.bestMove : null;
+
+        boolean hasPref0 = false;
+        boolean hasPref1 = false;
+        for (final Move move : moves) {
+            hasPref0 = hasPref0 | move.equals(pref0);
+            hasPref1 = hasPref1 | move.equals(pref1);
+        }
+
+        final List<Move> result = new ArrayList<Move>(moves.size());
+        if (hasPref0) {
+            result.add(pref0);
+        }
+        if (hasPref1) {
+            result.add(pref1);
+        }
+
+        for (final Move move : moves) {
+            if (!move.equals(pref0) && !move.equals(pref1)) {
+                result.add(move);
             }
         }
+
+        return result;
     }
 
 
 
     private SearchResult search(State state, int remainingDepth, int ply, int alpha, int beta,
                                     TranspositionTable.Entry existingEntry) {
-        final List<Move> moves = state.possibleMoves();
-        if (existingEntry != null) {
-            orderMoves(moves, state, ply);
-        }
+        final List<Move> possibleMoves = state.possibleMoves();
+        final List<Move> moves = orderMoves(possibleMoves, state, ply, existingEntry);
 
         Player winner;
 
@@ -143,8 +158,7 @@ final class MoveSearcher {
                 }
 
                 alpha = Math.max(alpha, childResult.eval);
-                if (beta <= alpha) {
-                    /* Score will be >= beta. beta-cutoff. */
+                if (beta <= alpha) {                    /* Score will be >= beta. beta-cutoff. */
                     entryType = TranspositionTable.EntryType.LOWER_BOUND;
                     break;
                 }
@@ -185,7 +199,7 @@ final class MoveSearcher {
                     break;
                 }
             }
-            result = new SearchResult(alpha, pv);
+            result = new SearchResult(beta, pv);
         }
 
         if (!timeIsUp()) {
