@@ -33,6 +33,7 @@ final class TranspositionTable {
     }
 
     private final Entry[] table = new Entry[TABLE_SIZE];
+    private final Entry[] alwaysReplaceTable = new Entry[TABLE_SIZE];
 
 
     private int hash(State state) {
@@ -40,11 +41,13 @@ final class TranspositionTable {
     }
 
     public Entry lookup(State state) {
-
         final int hash = hash(state);
-        final Entry entry = table[hash];
-        if (entry != null && state.equals(entry.state)) {
-            return entry;
+        final Entry entry1 = table[hash];
+        final Entry entry2 = alwaysReplaceTable[hash];
+        if (entry1 != null && state.equals(entry1.state)) {
+            return entry1;
+        } else if (entry2 != null && state.equals(entry2.state)) {
+            return entry2;
         } else {
             return null;
         }
@@ -57,6 +60,8 @@ final class TranspositionTable {
         final boolean shouldReplace = existingEntry == null || (entry.depth >= existingEntry.depth);
         if (shouldReplace) {
             table[hash] = entry;
+        } else {
+            alwaysReplaceTable[hash] = entry;
         }
     }
 

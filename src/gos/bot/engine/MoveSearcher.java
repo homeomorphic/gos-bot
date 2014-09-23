@@ -11,7 +11,7 @@ final class MoveSearcher {
 
     private static final long MOVE_TIME_MS = 1800;
     private static final int MAX_DEPTH = 10;
-    private final State rootState;
+
     private long nodes;
     private long startTime;
     private boolean flagAboutToFall;
@@ -21,15 +21,17 @@ final class MoveSearcher {
 
     private TranspositionTable transpositionTable;
 
-    public MoveSearcher(State rootState) {
-        depth = 1;
-        flagAboutToFall = false;
-        this.rootState = rootState;
+    public MoveSearcher() {
         transpositionTable = new TranspositionTable();
     }
 
-    public Move search() {
+    public Move search(State rootState) {
+        nodes = 0;
         startTime = System.currentTimeMillis();
+        flagAboutToFall = false;
+        depth = 1;
+        endTime = 0;
+
         Move bestMove = null;
         do {
             final SearchResult searchResult =
