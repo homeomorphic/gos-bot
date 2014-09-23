@@ -2,8 +2,6 @@ package gos.bot.engine;
 
 import gos.bot.protocol.Player;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,11 +14,10 @@ final class MoveSearcher {
     private long startTime;
     private boolean flagAboutToFall;
     private int depth;
-
     private long endTime;
+    private Move[] lastPrincipalVariation;
 
     private TranspositionTable transpositionTable;
-
     public MoveSearcher() {
         transpositionTable = new TranspositionTable();
     }
@@ -31,26 +28,31 @@ final class MoveSearcher {
         flagAboutToFall = false;
         depth = 1;
         endTime = 0;
+        lastPrincipalVariation = new Move[MAX_DEPTH+1];
 
-        Move bestMove = null;
+        SearchResult lastCompleteSearchResult = null;
         do {
             final SearchResult searchResult =
                     search(rootState, depth, 0, Integer.MIN_VALUE, Integer.MAX_VALUE, null);
 
             if (timeIsUp()) {
-                if (bestMove == null) {
+                if (lastCompleteSearchResult == null) {
                     /* we're very slow for some reason. shouldn't happen. */
-                    bestMove = searchResult.bestMove;
+                    lastCompleteSearchResult = searchResult;
                 }
                 break;
             }
 
-            bestMove = searchResult.bestMove;
+            lastCompleteSearchResult = searchResult;
+            for (int i = 0; i < lastPrincipalVariation.length; i++) {
+                lastPrincipalVariation[i] = i < searchResult.pv.size() ? searchResult.pv.get(i) : null;
+            }
+
             emit();
             depth++;
         } while (depth <= MAX_DEPTH);
         endTime = System.currentTimeMillis();
-        return bestMove;
+        return lastCompleteSearchResult.bestMove();
     }
 
     public double nps() {
@@ -62,34 +64,46 @@ final class MoveSearcher {
 
     private static final class SearchResult {
         public final int eval;
-        public final Move bestMove;
+        public final LinkedList<Move> pv;
 
-        private SearchResult(int eval, Move bestMove) {
+        private SearchResult(int eval, LinkedList<Move> pv) {
             this.eval = eval;
-            this.bestMove = bestMove;
+            this.pv = pv;
+        }
+
+        private SearchResult(int eval) {
+            this.eval = eval;
+            this.pv = new LinkedList<>();
+        }
+
+        public Move bestMove() {
+            return pv.isEmpty() ? null : pv.get(0);
         }
     }
 
-    private void orderMoves(List<Move> moves, Move bestMove) {
-        for (int i = 0; i < moves.size(); i++) {
-            if (moves.get(i).equals(bestMove)) {
-                moves.set(i, moves.get(0));
-                moves.set(0, bestMove);
-                break;
+    private void orderMoves(List<Move> moves, State state, int ply) {
+        if (ply < lastPrincipalVariation.length) {
+            final Move preferredMove = lastPrincipalVariation[ply];
+            for (int i = 0; i < moves.size(); i++) {
+                if (moves.get(i).equals(preferredMove)) {
+                    moves.set(i, moves.get(0));
+                    moves.set(0, preferredMove);
+                    break;
+                }
             }
         }
     }
+
 
 
     private SearchResult search(State state, int remainingDepth, int ply, int alpha, int beta,
                                     TranspositionTable.Entry existingEntry) {
         final List<Move> moves = state.possibleMoves();
         if (existingEntry != null) {
-            orderMoves(moves, existingEntry.bestMove);
+            orderMoves(moves, state, ply);
         }
 
         Player winner;
-        final int eval;
 
         winner = state.loser().opponent();
         if (winner == Player.None && moves.size() == 0) {
@@ -97,33 +111,38 @@ final class MoveSearcher {
             winner = state.getPlayerToMove().opponent();
         }
 
-        Move bestMove = null;
+        final SearchResult result;
         TranspositionTable.EntryType entryType = TranspositionTable.EntryType.EXACT;
 
         if (winner != Player.None) {
-            eval = winner == Player.White ? Integer.MAX_VALUE - ply: Integer.MIN_VALUE + ply;
+            final int eval = winner == Player.White ? Integer.MAX_VALUE - ply: Integer.MIN_VALUE + ply;
+            result = new SearchResult(eval);
         } else if (remainingDepth == 0) {
-            eval = Evaluator.evaluate(state);
+            final int eval = Evaluator.evaluate(state);
+            result = new SearchResult(eval);
         } else if (state.getPlayerToMove() == Player.White) {
+            LinkedList<Move> pv = null;
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
 
                 final TranspositionTable.Entry existingChildEntry =
                             transpositionTable.lookup(childState);
 
-                final int childEval;
+                final SearchResult childResult;
                 if (existingChildEntry != null && existingChildEntry.evaluation >= beta
                         && existingChildEntry.isUsableForLowerBound(remainingDepth)) {
-                    childEval = existingChildEntry.evaluation;
+                    final int childEval = existingChildEntry.evaluation;
+                    childResult = new SearchResult(childEval);
                 } else {
-                    childEval = search(childState, remainingDepth - 1, ply + 1, alpha, beta, existingChildEntry).eval;
+                    childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta, existingChildEntry);
                 }
 
-                if (childEval > alpha || bestMove == null) {
-                    bestMove = move;
+                if (childResult.eval > alpha || pv == null) {
+                    pv = childResult.pv;
+                    pv.addFirst(move);
                 }
 
-                alpha = Math.max(alpha, childEval);
+                alpha = Math.max(alpha, childResult.eval);
                 if (beta <= alpha) {
                     /* Score will be >= beta. beta-cutoff. */
                     entryType = TranspositionTable.EntryType.LOWER_BOUND;
@@ -133,27 +152,30 @@ final class MoveSearcher {
                     break;
                 }
             }
-            eval = alpha;
+            result = new SearchResult(alpha, pv);
         } else {
+            LinkedList<Move> pv = null;
             for (final Move move : moves) {
                 final State childState = state.applyMove(move);
 
                 final TranspositionTable.Entry existingChildEntry =
                         transpositionTable.lookup(childState);
 
-                final int childEval;
+                final SearchResult childResult;
                 if (existingChildEntry != null && existingChildEntry.evaluation <= alpha
                         && existingChildEntry.isUsableForUpperBound(remainingDepth)) {
-                    childEval = existingChildEntry.evaluation;
+                    final int childEval = existingChildEntry.evaluation;
+                    childResult = new SearchResult(childEval);
                 } else {
-                    childEval = search(childState, remainingDepth - 1, ply + 1, alpha, beta, existingChildEntry).eval;
+                    childResult = search(childState, remainingDepth - 1, ply + 1, alpha, beta, existingChildEntry);
                 }
 
-                if (childEval < beta || bestMove == null) {
-                    bestMove = move;
+                if (childResult.eval < beta || pv == null) {
+                    pv = childResult.pv;
+                    pv.addFirst(move);
                 }
 
-                beta = Math.min(beta, childEval);
+                beta = Math.min(beta, childResult.eval);
                 if (beta <= alpha) {
                     /* Score will be <= alpha. alpha-cutoff. */
                     entryType = TranspositionTable.EntryType.UPPER_BOUND;
@@ -163,17 +185,18 @@ final class MoveSearcher {
                     break;
                 }
             }
-            eval = beta;
+            result = new SearchResult(alpha, pv);
         }
 
         if (!timeIsUp()) {
             transpositionTable.store(
-                    new TranspositionTable.Entry(state, remainingDepth, eval, entryType, bestMove));
+                    new TranspositionTable.Entry(state, remainingDepth, result.eval, entryType, result.bestMove()));
+
         }
 
         nodes++;
 
-        return new SearchResult(eval, bestMove);
+        return result;
     }
 
 

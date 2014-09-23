@@ -2,7 +2,7 @@ package gos.bot.engine;
 
 final class TranspositionTable {
 
-    private static final int TABLE_SIZE = 500_000_000;
+    private static final int TABLE_SIZE = 100_000_000;
 
     public static enum EntryType {
         EXACT, UPPER_BOUND, LOWER_BOUND
@@ -32,6 +32,7 @@ final class TranspositionTable {
         }
     }
 
+    private final Entry[] pvTable = new Entry[TABLE_SIZE];
     private final Entry[] table = new Entry[TABLE_SIZE];
     private final Entry[] alwaysReplaceTable = new Entry[TABLE_SIZE];
 
@@ -41,28 +42,40 @@ final class TranspositionTable {
     }
 
     public Entry lookup(State state) {
+        return null;
+        /*
         final int hash = hash(state);
+        final Entry entry0 = pvTable[hash];
         final Entry entry1 = table[hash];
         final Entry entry2 = alwaysReplaceTable[hash];
-        if (entry1 != null && state.equals(entry1.state)) {
+        if (entry0 != null && state.equals(entry0.state)) {
+            return entry0;
+        } else if (entry1 != null && state.equals(entry1.state)) {
             return entry1;
         } else if (entry2 != null && state.equals(entry2.state)) {
             return entry2;
         } else {
             return null;
-        }
+        }*/
     }
 
 
     public void store(Entry entry) {
+        return; /*
         final int hash = hash(entry.state);
         final Entry existingEntry = table[hash];
-        final boolean shouldReplace = existingEntry == null || (entry.depth >= existingEntry.depth);
-        if (shouldReplace) {
+
+        final boolean pvNode = entry.type == EntryType.EXACT;
+        final boolean betterDepth = existingEntry == null || (entry.depth >= existingEntry.depth);
+        if (pvNode) {
+            pvTable[hash] = entry;
+        }
+
+        if (betterDepth) {
             table[hash] = entry;
         } else {
             alwaysReplaceTable[hash] = entry;
-        }
+        }*/
     }
 
 
