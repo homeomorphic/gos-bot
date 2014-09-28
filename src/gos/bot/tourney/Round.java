@@ -13,30 +13,26 @@ public class Round implements AutoCloseable {
     private final String white;
     private final String black;
     private final Gson gson = new Gson();
+    private final PrintStream moveStream;
     private BufferedReader[] ins;
     private PrintStream[] outs;
-    private PrintStream[] outsCopy;
     private Board board;
     private Process[] processes;
     private Player winsByForfeit = Player.None;
 
-    public Round(String white, String black) throws FileNotFoundException {
+    public Round(String white, String black, PrintStream moveStream) throws FileNotFoundException {
         this.white = white;
         this.black = black;
         board = new Board();
         processes = new Process[2];
         ins = new BufferedReader[2];
         outs = new PrintStream[2];
-        outsCopy = new PrintStream[2];
-        outsCopy[0] = new PrintStream(new FileOutputStream("out_white.txt"));
-        outsCopy[1] = new PrintStream(new FileOutputStream("out_black.txt"));
+        this.moveStream = moveStream;
     }
 
     private void write(int stream, String line) {
         outs[stream].println(line);
         outs[stream].flush();
-        outsCopy[stream].println(line);
-        outsCopy[stream].flush();
     }
 
     public Player play() throws IOException {
@@ -56,6 +52,7 @@ public class Round implements AutoCloseable {
         while (currentWinner() == Player.None) {
             nextRound();
         }
+        moveStream.println("{ \"Winner\": \"" + (currentWinner() == Player.White ? "1" : "-1") + "\" }");
 
         return currentWinner();
     }
@@ -84,6 +81,7 @@ public class Round implements AutoCloseable {
         final BufferedReader in = ins[streamId];
         final MoveRequest moveRequest = new MoveRequest(board, types);
         write(streamId, gson.toJson(moveRequest));
+        moveStream.println(gson.toJson(moveRequest));
 
         final String line = in.readLine();
         final Move move = (Move) gson.fromJson(line, Move.class);
@@ -98,6 +96,8 @@ public class Round implements AutoCloseable {
             write(0, processedMoveStr);
             write(1, processedMoveStr);
         }
+
+
     }
 
     private void applyMove(Player player, Move move) {
@@ -140,12 +140,6 @@ public class Round implements AutoCloseable {
         }
         if (processes[1] != null) {
             processes[1].destroy();
-        }
-        if (outsCopy[0] != null) {
-            outsCopy[0].close();
-        }
-        if (outsCopy[1] != null) {
-            outsCopy[1].close();
         }
     }
 }

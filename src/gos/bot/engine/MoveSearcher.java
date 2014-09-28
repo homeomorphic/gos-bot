@@ -2,10 +2,7 @@ package gos.bot.engine;
 
 import gos.bot.protocol.Player;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 final class MoveSearcher {
 
@@ -51,7 +48,9 @@ final class MoveSearcher {
                 break;
             }
 
-            lastCompleteSearchResult = searchResult;
+            if (depth % 2 == 1) {
+                lastCompleteSearchResult = searchResult;
+            }
             for (int i = 0; i < lastPrincipalVariation.length; i++) {
                 lastPrincipalVariation[i] = i < searchResult.pv.size() ? searchResult.pv.get(i) : null;
             }
@@ -86,6 +85,10 @@ final class MoveSearcher {
 
         public Move bestMove() {
             return pv.isEmpty() ? null : pv.get(0);
+        }
+
+        public boolean decisive() {
+            return eval == Integer.MIN_VALUE || eval == Integer.MAX_VALUE;
         }
     }
 

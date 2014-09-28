@@ -3,6 +3,9 @@ package gos.bot.tourney;
 import com.google.gson.Gson;
 import gos.bot.protocol.Player;
 
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+
 public class Tourney {
 
     private final Gson gson = new Gson();
@@ -15,40 +18,42 @@ public class Tourney {
     }
 
     public void start() throws Exception {
-        for (int i = 0; i < 10; i++) {
-            Player winner;
+        final FileOutputStream fos = new FileOutputStream("tourney_result.txt");
+        try (final PrintStream moveStream = new PrintStream(fos)) {
+            for (int i = 0; i < 50; i++) {
+                Player winner;
 
-            try (Round round = new Round(bot1, bot2)) {
-                winner = round.play();
-                if (winner == Player.White) {
-                    bot1wins++;
-                } else {
-                    bot2wins++;
+                try (Round round = new Round(bot1, bot2, moveStream)) {
+                    winner = round.play();
+                    if (winner == Player.White) {
+                        bot1wins++;
+                    } else {
+                        bot2wins++;
+                    }
                 }
-            }
 
-            System.out.println("**************************************");
-            System.out.println("After " + (2*i+1) + " rounds...");
-            System.out.println("# wins for " + bot1 + " \t " + bot1wins);
-            System.out.println("# wins for " + bot2 + " \t " + bot2wins);
-            System.out.println("**************************************");
+                System.out.println("**************************************");
+                System.out.println("After " + (2 * i + 1) + " rounds...");
+                System.out.println("# wins for " + bot1 + " \t " + bot1wins);
+                System.out.println("# wins for " + bot2 + " \t " + bot2wins);
+                System.out.println("**************************************");
 
-            try (Round round = new Round(bot2, bot1)) {
-                winner = round.play();
-                if (winner == Player.White) {
-                    bot2wins++;
-                } else {
-                    bot1wins++;
+                try (Round round = new Round(bot2, bot1, moveStream)) {
+                    winner = round.play();
+                    if (winner == Player.White) {
+                        bot2wins++;
+                    } else {
+                        bot1wins++;
+                    }
                 }
-            }
 
-            System.out.println("**************************************");
-            System.out.println("After " + (2*i+2) + " rounds...");
-            System.out.println("# wins for " + bot1 + " \t " + bot1wins);
-            System.out.println("# wins for " + bot2 + " \t " + bot2wins);
-            System.out.println("**************************************");
+                System.out.println("**************************************");
+                System.out.println("After " + (2 * i + 2) + " rounds...");
+                System.out.println("# wins for " + bot1 + " \t " + bot1wins);
+                System.out.println("# wins for " + bot2 + " \t " + bot2wins);
+                System.out.println("**************************************");
+            }
         }
-
     }
 
     public static void main(String[] args) throws Exception {
