@@ -16,12 +16,7 @@ final class MoveSearcher {
     private long endTime;
     private Move[] lastPrincipalVariation;
 
-    //private TranspositionTable transpositionTable;
     private Move[][] killerMove;
-
-    public MoveSearcher() {
-     //   transpositionTable = new TranspositionTable();
-    }
 
     public Move search(State rootState) {
         nodes = 0;
@@ -48,14 +43,12 @@ final class MoveSearcher {
                 break;
             }
 
-            if (depth % 2 == 1) {
-                lastCompleteSearchResult = searchResult;
-            }
+            lastCompleteSearchResult = searchResult;
             for (int i = 0; i < lastPrincipalVariation.length; i++) {
                 lastPrincipalVariation[i] = i < searchResult.pv.size() ? searchResult.pv.get(i) : null;
             }
 
-            emit();
+            // emit();
             depth++;
         } while (depth <= MAX_DEPTH);
         endTime = System.currentTimeMillis();
@@ -108,9 +101,9 @@ final class MoveSearcher {
         boolean hasPref1 = false;
         boolean hasPref2 = false;
         for (final Move move : moves) {
-            hasPref0 = hasPref0 | move.equals(pref0);
-            hasPref1 = hasPref1 | move.equals(pref1);
-            hasPref2 = hasPref2 | move.equals(pref2);
+            hasPref0 = hasPref0 || move.equals(pref0);
+            hasPref1 = hasPref1 || move.equals(pref1);
+            hasPref2 = hasPref2 || move.equals(pref2);
 
         }
 
@@ -149,7 +142,6 @@ final class MoveSearcher {
         }
 
         final SearchResult result;
-        TranspositionTable.EntryType entryType = TranspositionTable.EntryType.EXACT;
 
         if (winner != Player.None) {
             final int eval = winner == Player.White ? Integer.MAX_VALUE: Integer.MIN_VALUE;
@@ -176,7 +168,7 @@ final class MoveSearcher {
                         killerMove[ply][1] = killerMove[ply][0];
                         killerMove[ply][0] = move;
                     }
-                    entryType = TranspositionTable.EntryType.LOWER_BOUND;
+
                     break;
                 }
                 if (timeIsUp()) {
@@ -204,7 +196,6 @@ final class MoveSearcher {
                         killerMove[ply][1] = killerMove[ply][0];
                         killerMove[ply][0] = move;
                     }
-                    entryType = TranspositionTable.EntryType.UPPER_BOUND;
                     break;
                 }
                 if (timeIsUp()) {
